@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
+const { request } = require('express');
 const app = express();
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(cookieParser());
@@ -109,19 +110,25 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
+app.get("/login", (req,res) => {
+  let templateVars = { 
+    user: getUserObjectFromId(req.cookies["user_id"])
+  };
+  res.render("login", templateVars)
+})
+
 app.post("/login", (req,res) => {
-  for (user in users) {
-    if (!users[user].email || !users[user].password) {
-      return res.send("Email and Password cannot be blank")
-    }
-    if (users[user].email === req.body.email) {
-      if(users[user].password === req.body.password){
-        res.cookie("user_id", users[user].id);
-        return res.redirect("urls");
-      }
-    }
+  const user = getUserObjectFromEmail(req.body.email);
+  if (!user) {
+    console.log('Email does not exist!')
+    return res.status(403).send("Issue with email/password combination!")
   }
-  return res.send("Issue with email/password combination!")
+  if (user.password !== req.body.email) {
+    console.log('Password is incorrect!')
+    return res.status(403).send("Issue with email/password combination!")
+  }
+  res.cookie("user_id", users[user].id);
+  return res.redirect("urls");
 })
 
 app.post("/logout", (req, res) => {
@@ -133,7 +140,7 @@ app.get("/register", (req, res) => {
   let templateVars = { 
     user: getUserObjectFromId(req.cookies["user_id"])
   };
-  res.render("registration", templateVars)
+  res.render("register", templateVars)
 })
 
 app.post("/register", (req,res) => {

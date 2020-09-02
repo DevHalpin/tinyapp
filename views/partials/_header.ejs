@@ -16,11 +16,10 @@
           <button type="submit" class="btn btn-outline-dark">Logout</button>
         </form>
         <% } else { %>
-          <form class="form-inline" method="POST" action="/login">
-          <label for ="email">Email: </label>
-          <input type="text" name="email" placeholder="Email"/>
-          <label for ="password">Password: </label>
-          <input type="password" name="password"/>
+          <form class="form-inline" method="GET" action="/register" style="margin: 1em">
+            <button type="submit" class="btn btn-outline-dark">Register</button>
+          </form>
+          <form class="form-inline" method="GET" action="/login">
             <button type="submit" class="btn btn-outline-dark">Login</button>
           </form>
         <% } %>
