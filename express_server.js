@@ -1,6 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
+
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -62,6 +64,60 @@ const getUserObjectFromEmail = (email) => {
   return null;
 };
 
+app.get("/login", (req, res) => {
+  const templateVars = {
+    user: getUserObjectFromId(req.cookies["user_id"])
+  };
+  res.render("login", templateVars);
+});
+
+app.post("/login", (req, res) => {
+  const user = getUserObjectFromEmail(req.body.email);
+  if (!user) {
+    return res.status(403).send("Issue with email/password combination!");
+  }
+  if (!bcrypt.compareSync(req.body.password, user.password)) {
+    return res.status(403).send("Issue with email/password combination!");
+  }
+  res.cookie("user_id", user.id);
+  return res.redirect("urls");
+});
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("user_id");
+  res.redirect("/urls");
+});
+
+app.get("/register", (req, res) => {
+  const templateVars = {
+    user: getUserObjectFromId(req.cookies["user_id"])
+  };
+  res.render("register", templateVars);
+});
+
+app.post("/register", (req, res) => {
+  const id = generateRandomString();
+  const email = req.body.email;
+  const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
+  if (email === '' || password === '') {
+    res.status(400).send("Empty password and/or email!");
+    return;
+  }
+  if (getUserObjectFromEmail(email)) {
+    res.status(400).send("Email already exists in database!");
+    return;
+  }
+  users[id] = {
+    id,
+    email,
+    password: hashedPassword
+  };
+  console.log(users);
+  res.cookie("user_id", id);
+  res.redirect("/urls");
+});
+
 app.get('/', (req, res) => {
   res.send('Hello!');
 });
@@ -72,7 +128,7 @@ app.get('/urls', (req, res) => {
       urls: urlsForUser(req.cookies["user_id"]),
       user: getUserObjectFromId(req.cookies["user_id"])
     };
-    res.render('urls_index', templateVars);
+    return res.render('urls_index', templateVars);
   }
   return res.status(401).redirect("/login");
 });
@@ -130,57 +186,6 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 });
 
 
-app.get("/login", (req, res) => {
-  const templateVars = {
-    user: getUserObjectFromId(req.cookies["user_id"])
-  };
-  res.render("login", templateVars);
-});
-
-app.post("/login", (req, res) => {
-  const user = getUserObjectFromEmail(req.body.email);
-  if (!user) {
-    return res.status(403).send("Issue with email/password combination!");
-  }
-  if (user.password !== req.body.password) {
-    return res.status(403).send("Issue with email/password combination!");
-  }
-  res.cookie("user_id", user.id);
-  return res.redirect("urls");
-});
-
-app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
-  res.redirect("/urls");
-});
-
-app.get("/register", (req, res) => {
-  const templateVars = {
-    user: getUserObjectFromId(req.cookies["user_id"])
-  };
-  res.render("register", templateVars);
-});
-
-app.post("/register", (req, res) => {
-  const id = generateRandomString();
-  const email = req.body.email;
-  const password = req.body.password;
-  if (email === '' || password === '') {
-    res.status(400).send("Empty password and/or email!");
-    return;
-  }
-  if (getUserObjectFromEmail(email)) {
-    res.status(400).send("Email already exists in database!");
-    return;
-  }
-  users[id] = {
-    id,
-    email,
-    password
-  };
-  res.cookie("user_id", id);
-  res.redirect("/urls");
-});
 
 app.get('/urls.json', (req, res) => {
   res.json(urlDatabase);
